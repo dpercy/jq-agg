@@ -9,10 +9,12 @@ function jqCompile(str) {
     return agg;
 }
 
-DBCollection.prototype.jq = function(jqQuery, aggOptions) {
+function jq(jqQuery, aggOptions) {
     var agg = jqCompile(jqQuery);
     return this.aggregate(agg, aggOptions);
-};
+}
+DBCollection.prototype.jq = jq;
+Explainable.prototype.jq = jq;
 
 return jqCompile;
 
