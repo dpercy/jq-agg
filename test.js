@@ -11,7 +11,7 @@ assert.eq(
 // - edge case: when _id is specified, project it back in
 assert.eq(
     jqCompile('map({_id: 1, x: .foo})'),
-    [{$project: {_id: 0, x: "$foo"}}])
+    [{$project: {_id: {$literal: 1}, x: "$foo"}}])
 // TODO deeper project expressions are tricky because MongoDB has weird array behavior.
     //  - maybe I can generate an ugly agg query to hide this
 
