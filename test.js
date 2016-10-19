@@ -1,5 +1,10 @@
 load('main.js');
 
+// Easiest case: a noop -> empty agg pipeline
+assert.eq(
+    jqCompile('.'),
+    [])
+
 // Simple $project with whitelist of fields
 // - note _id is automatically projected out
 assert.eq(

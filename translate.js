@@ -48,6 +48,8 @@ function flatten(v) {
 function translateStage(jqStage) { // agg stage OR array of agg stages
     var m = match;
     return match(jqStage, (when) => {
+        // jq noop -> empty agg pipeline
+        when({ type: "Noop" }, () => [])
         // map({ key: value, ... }) -> {$project: {key: "$value", ...}}
         when({
             type: "Call",

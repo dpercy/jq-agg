@@ -9,6 +9,11 @@ function jqCompile(str) {
     return agg;
 }
 
+DBCollection.prototype.jq = function(jqQuery, aggOptions) {
+    var agg = jqCompile(jqQuery);
+    return this.aggregate(agg, aggOptions);
+};
+
 return jqCompile;
 
 })();
