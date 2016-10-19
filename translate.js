@@ -98,6 +98,15 @@ function translateStage(jqStage) { // agg stage OR array of agg stages
                 {$project: {_id: 0}}
             ];
         })
+        // .[start:end] -> $skip, $limit
+        when(m.var('v', (v) => v.type === "Slice"), ({v}) => {
+            var skip = 'start' in v ? [{$skip: v.start}] : [];
+            var limit = 'end' in v ? [{$limit: v.end}] : [];
+            // Always apply the limit before the skip:
+            // for example: .[3:5] should limit to 5, then skip 3,
+            // resulting in 2 returned array elements.
+            return limit.concat(skip);
+        })
         // fallback: when no case matches, raise an error
         when(m.any, () => {
             throw Error("Don't know how to translate jq: "

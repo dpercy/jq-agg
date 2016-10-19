@@ -50,9 +50,12 @@ ObjectField
 / key:(Identifier/String)
     { return { key: key, value: { type: "FieldRef", name: key } } }
      
-Subscript = "[" _ index:Number _ "]" {
-  return { type: "Subscript", index: index };
-}
+Subscript
+= "[" _ index:Number _ "]" { return { type: "Subscript", index: index } }
+/ "[" _ start:Number _ ":" _ end:Number _ "]" { return { type: "Slice", start: start, end: end } }
+/ "[" _ ":" _ end:Number _ "]" { return { type: "Slice", end: end } }
+/ "[" _ start:Number _ ":" _ "]" { return { type: "Slice", start: start } }
+
 // NOTE: this rule doesn't include the leading ".",
 // because that has to be factored out in the StageHead rule,
 // because PEGs don't support backtracking (IIUC).

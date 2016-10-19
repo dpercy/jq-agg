@@ -44,8 +44,20 @@ assert.eq(
       {$project: {_id: 0}} ])
 // TODO max is harder because its input is not an array of documents
 
+// skip and limit
+assert.eq(
+    jqCompile('.[:10]'),
+    [ {$limit: 10} ])
+assert.eq(
+    jqCompile('.[3:]'),
+    [ {$skip: 3} ])
+assert.eq(
+    jqCompile('.[3:10]'),
+    [ {$limit: 10}, {$skip: 3} ])
 
 // TODO $unwind as .[]
-// TODO $match as select
-// TODO skip and limit
-// TODO sort
+// TODO $match as select - along with many predicates
+// TODO sort - might use a different sort order from jq?
+
+// TODO support parameterized queries: db.mycoll.jq('select(.x == $val)', { val: 123 })
+
