@@ -8,6 +8,10 @@ assert.eq(
 assert.eq(
     jqCompile('map({x: .foo})'),
     [{$project: {_id: 0, x: "$foo"}}])
+assert.eq(
+    jqCompile('map({x})'),
+    jqCompile('map({x: .x})'))
+// TODO fix edge case: jq project missing field is null, agg project missing field is missing field!
 // - edge case: when _id is specified, project it back in
 assert.eq(
     jqCompile('map({_id: 1, x: .foo})'),
@@ -39,3 +43,4 @@ assert.eq(
 // TODO $unwind as .[]
 // TODO $match as select
 // TODO skip and limit
+// TODO sort
