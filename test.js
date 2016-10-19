@@ -28,9 +28,11 @@ assert.throws(
     () => jqCompile('length'))
 // Instead, you can write a project/length in jq and translate it as
 // the MongoDB $group/$sum/1 pattern.
+// (You also need to project out the unwanted _id: null field.)
 assert.eq(
     jqCompile('{n: length}'),
-    [{$group: {_id: 0, n: {$sum:1}}}])
+    [ {$group: {_id: null, n: {$sum:1}}},
+      {$project: {_id: 0}} ])
 // TODO max is harder because its input is not an array of documents
 
 

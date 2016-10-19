@@ -15,7 +15,7 @@ var match = (function() {
 // input: a parsed jq expression (pipeline)
 // output: a MongoDB agg pipeline (suitable for passing to 
 function translate(jq) {
-    return flattenPipeline(jq).map(translateStage);
+    return flatten(flattenPipeline(jq).map(translateStage));
 }
 
 // input: jq pipeline
@@ -33,7 +33,19 @@ function flattenPipeline(jq) {
     return result;
 }
 
-function translateStage(jqStage) { // single agg stage
+function flatten(v) {
+    var result = [];
+    (function recur(v) {
+        if (Array.isArray(v)) {
+            v.forEach(recur);
+        } else {
+            result.push(v);
+        }
+    })(v);
+    return result;
+}
+
+function translateStage(jqStage) { // agg stage OR array of agg stages
     var m = match;
     return match(jqStage, (when) => {
         // map({ key: value, ... }) -> {$project: {key: "$value", ...}}
@@ -56,6 +68,35 @@ function translateStage(jqStage) { // single agg stage
             }));
             return stage;
         })
+        // map(del(.fieldName)) -> {$project: {fieldName: 0}}
+        when({
+            type: "Call",
+            function: "map",
+            arguments: [ {
+                type: "Call",
+                function: "del",
+                arguments: [ {
+                    type: "FieldRef",
+                    name: m.var('fieldName')
+                } ]
+            } ]
+        }, ({fieldName}) => {
+           return {$project: {[fieldName]: 0}};
+        })
+        // { n: length } -> {$group: {_id: null, n:{$sum:1}}}
+        when({
+            type: "Object",
+            fields: [ {
+                key: m.var('fieldName'),
+                value: { type: "Call", function: "length", arguments: [] }
+            } ]
+        }, ({fieldName}) => {
+            return [
+                {$group: {_id: null, [fieldName]: {$sum:1}}},
+                {$project: {_id: 0}}
+            ];
+        })
+        // fallback: when no case matches, raise an error
         when(m.any, () => {
             throw Error("Don't know how to translate jq: "
                         + JSON.stringify(jqStage, null, 2));
