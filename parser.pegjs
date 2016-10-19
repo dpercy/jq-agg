@@ -1,40 +1,39 @@
-/*
- * Simple Arithmetics Grammar
- * ==========================
- *
- * Accepts expressions like "2 * (3 + 4)" and computes their value.
- */
+{
+	function foldPipe(head, tail) {
+    	var result = head;
+        tail.forEach(function(suffix) {
+          result = {
+              type: "Pipe",
+              left: result,
+              right: suffix,
+          };
+        });
+        return result;
+	}
+}
 
-Expression
-  = head:Term tail:(_ ("+" / "-") _ Term)* {
-      var result = head, i;
+Pipeline = head:Stage tail:(_ "|" _ s:Stage { return s })* {
+    return foldPipe(head, tail);
+}
 
-      for (i = 0; i < tail.length; i++) {
-        if (tail[i][1] === "+") { result += tail[i][3]; }
-        if (tail[i][1] === "-") { result -= tail[i][3]; }
-      }
+Stage = head:StageHead tail:StageTail* {
+  	return foldPipe(head, tail);
+}
 
-      return result;
-    }
+StageHead = "(" _ p:Pipeline _ ")" { return p }
+          / "." v:( FieldRef
+                  / Subscript
+                  / "" { return {type:"Noop"} }) { return v }
+StageTail = "." fr:FieldRef { return fr } / Subscript
 
-Term
-  = head:Factor tail:(_ ("*" / "/") _ Factor)* {
-      var result = head, i;
+Subscript = "[" _ index:Number _ "]" {
+  return { type: "Subscript", index: index };
+}
+FieldRef = x:Identifier {
+  return { type: "FieldRef", name: x }
+}
 
-      for (i = 0; i < tail.length; i++) {
-        if (tail[i][1] === "*") { result *= tail[i][3]; }
-        if (tail[i][1] === "/") { result /= tail[i][3]; }
-      }
-
-      return result;
-    }
-
-Factor
-  = "(" _ expr:Expression _ ")" { return expr; }
-  / Integer
-
-Integer "integer"
-  = [0-9]+ { return parseInt(text(), 10); }
-
-_ "whitespace"
-  = [ \t\n\r]*
+// tokens
+Identifier = [_a-zA-Z][_a-zA-Z0-9]* { return text() }
+Number "number" = n:[0-9]+ { return +text() }
+_ "whitespace" = [ \t\n\r]*
