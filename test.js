@@ -55,8 +55,14 @@ assert.eq(
     jqCompile('.[3:10]'),
     [ {$limit: 10}, {$skip: 3} ])
 
+// $match -> select
+assert.eq(
+    jqCompile('select(.x == 123)'),
+    [ {$match: { x: {$eq: 123}}} ])
+// TODO more match predicates!
+
+
 // TODO $unwind as .[]
-// TODO $match as select - along with many predicates
 // TODO sort - might use a different sort order from jq?
 
 // TODO support parameterized queries: db.mycoll.jq('select(.x == $val)', { val: 123 })

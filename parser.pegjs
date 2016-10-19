@@ -16,18 +16,27 @@ Pipeline = head:Stage tail:(_ "|" _ s:Stage { return s })* {
     return foldPipe(head, tail);
 }
 
-Stage = head:StageHead tail:StageTail* {
+Stage 
+= lhs:Primary _ op:InfixOp _ rhs:Primary {
+  return { type: "Call", function: op, arguments: [lhs, rhs] }
+}
+/ Primary
+
+InfixOp = ("==" / ">") { return text() }
+
+// Primary :=  foo  or  .bar  or   .blah[1:2][5].blerg
+Primary = head:PrimaryHead tail:PrimaryTail* {
   	return foldPipe(head, tail);
 }
 
-StageHead = "(" _ p:Pipeline _ ")" { return p }
+PrimaryHead = "(" _ p:Pipeline _ ")" { return p }
           / v:(Number/String) { return {type:"Literal", value: v } }
           / FunctionCall
           / Object
           / "." v:( FieldRef
                   / Subscript
                   / "" { return {type:"Noop"} }) { return v }
-StageTail = "." fr:FieldRef { return fr } / Subscript
+PrimaryTail = "." fr:FieldRef { return fr } / Subscript
 
 // A zero-argument function is called with just its name,
 // like `length`; never with empty parens, like `length()`.

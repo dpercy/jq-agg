@@ -107,6 +107,22 @@ function translateStage(jqStage) { // agg stage OR array of agg stages
             // resulting in 2 returned array elements.
             return limit.concat(skip);
         })
+        // select(.fieldName == literal) -> {$match: {fieldName: {$eq: v}}}
+        // TODO more generally, have a translatePredicate function
+        when({
+            type: "Call",
+            function: "select",
+            arguments: [ {
+                type: "Call",
+                function: "==",
+                arguments: [
+                    { type: "FieldRef", name: m.var('fieldName') },
+                    { type: "Literal", value: m.var('v') }
+                ]
+            } ]
+        }, ({fieldName, v}) => {
+            return {$match: {[fieldName]: {$eq: v}}}
+        })
         // fallback: when no case matches, raise an error
         when(m.any, () => {
             throw Error("Don't know how to translate jq: "
