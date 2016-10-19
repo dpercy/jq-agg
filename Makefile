@@ -1,7 +1,7 @@
 
 
-test: parser.js
+test: parser.gen.js
 	mongo --nodb test.js
 
-parser.js: parser.pegjs
+parser.gen.js: parser.pegjs
 	./node_modules/pegjs/bin/pegjs  --format globals  --export-var parser  -o $@   $<

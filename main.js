@@ -1,7 +1,7 @@
 var jqCompile = (function() {
 
-load('parser.js'); // assigns to this.parser.parse
-load('translate.js') // assigns to this.translator
+load('parser.gen.js'); // assigns to this.parser.parse
+load('translate.js'); // assigns to this.translator
 
 function jqCompile(str) {
     var jq = this.parser.parse(str);
