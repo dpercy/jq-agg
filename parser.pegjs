@@ -12,6 +12,8 @@
 	}
 }
 
+Program = _ p:Pipeline _ { return p }
+
 Pipeline = head:Stage tail:(_ "|" _ s:Stage { return s })* {
     return foldPipe(head, tail);
 }
