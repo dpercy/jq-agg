@@ -38,7 +38,11 @@ Prec2
 = lhs:Prec3 _ op:$("=="/"!="/">="/"<="/">"/"<") _ rhs:Prec3 { return mkCall(op, lhs, rhs) }
 / Prec3
 
-Prec3 = Primary
+Prec3
+= "-" a:Prec4 { return { type: "Call", function: "-", arguments: [a]}}
+/ Prec4
+
+Prec4 = Primary
 
 
 // Primary :=  foo  or  .bar  or   .blah[1:2][5].blerg
