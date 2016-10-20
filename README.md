@@ -32,4 +32,16 @@ group\_by(key\_expr) | reduce each array...
 
 Find motivating examples: all agg problems from courseware.
 
-  
+
+```
+jq -n '
+    def group_by(grouper; outField; aggregator; inField):
+        group_by(grouper)
+        | map( (map(inField) | aggregator) as $v
+             | {_id:.[0]|grouper}
+             | (outField |= $v)
+             )
+    ;
+    [{x:1,y:1},{x:1,y:2},{x:2,y:3}] |group_by(.x; .n; min; .y)
+'
+```

@@ -73,3 +73,20 @@ assert.eq(
 
 // TODO support parameterized queries: db.mycoll.jq('select(.x == $val)', { val: 123 })
 
+
+
+
+/*
+examples from Docs and University:
+https://docs.mongodb.com/v3.0/tutorial/aggregation-zip-code-data-set/#return-states-with-populations-above-10-million
+
+    db.zipcodes.aggregate( [
+       { $group: { _id: "$state", totalPop: { $sum: "$pop" } } },
+       { $match: { totalPop: { $gte: 10*1000*1000 } } }
+    ] )
+
+
+
+    jq -s 'group_by(.state)'  means   {$group: {_id: "$state", theactualvalue: {$push: "$$CURRENT"}}}
+
+*/
