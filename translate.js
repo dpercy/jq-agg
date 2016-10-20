@@ -115,6 +115,21 @@ function translateStage(jqStage) { // agg stage OR array of agg stages
         }, ({arg}) => {
             return {$match: translatePredicate(arg)}
         })
+        // group_by(.fieldName; { x: aggregate, ... }) -> {$group: {_id: "$fieldName", x: aggregate ... }}
+        when({
+            type: "Call",
+            function: "group_by",
+            arguments: [
+                { type: "FieldRef", name: m.var('grouperField') },
+                { type: "Object", fields: m.var('accumFields') }
+            ]
+        }, ({grouperField, accumFields}) => {
+            var doc = { _id: "$" + grouperField };
+            accumFields.forEach(({ key, value }) => {
+                doc[key] = translateAccumExpression(value);
+            });
+            return {$group: doc};
+        })
         // fallback: when no case matches, raise an error
         when(m.any, () => {
             throw Error("Don't know how to translate jq: "
@@ -150,7 +165,7 @@ function translatePredicate(jqPred) { // -> predicate doc, suitable for passing 
         // just flip it around and let the other cases handle it
         when({
             type: "Call",
-            function: m.var('op', (op) => op in opFlip),
+            function: m.var('op', op => op in opFlip),
             arguments: [
                 m.var('lhs', { type: "Literal", value: m.var('v') }),
                 m.var('rhs', { type: "FieldRef", name: m.var('fieldName') })
@@ -161,7 +176,7 @@ function translatePredicate(jqPred) { // -> predicate doc, suitable for passing 
         // comparison ops
         when({
             type: "Call",
-            function: m.var('op', (op) => op in comparisonOps),
+            function: m.var('op', op => op in comparisonOps),
             arguments: [
                 { type: "FieldRef", name: m.var('fieldName') },
                 { type: "Literal", value: m.var('v') }
@@ -172,7 +187,7 @@ function translatePredicate(jqPred) { // -> predicate doc, suitable for passing 
         // logical ops
         when({
             type: "Call",
-            function: m.var('op', (op) => op in logicalOps),
+            function: m.var('op', op => op in logicalOps),
             arguments: [ m.var('lhs'), m.var('rhs') ]
         }, ({op, lhs, rhs}) => {
             return { [logicalOps[op]]: [ translatePredicate(lhs), translatePredicate(rhs) ] };
@@ -180,6 +195,46 @@ function translatePredicate(jqPred) { // -> predicate doc, suitable for passing 
         when(m.any, () => {
             throw Error("Don't know how to compile this predicate: "
                         + JSON.stringify(jqPred, null, 2));
+        })
+    });
+}
+
+function translateAccumExpression(jqAccumExpr) { // -> single expression for use in {$group: { ... x: _ ... }}
+    // cases:
+    // map( thing )  ->  {$push: thing}
+    // map( thing ) | func -> {$func: thing}
+    var accums = {
+        "add": "$sum",
+        "unique": "$addToSet",
+        "max": "$max",
+        "min": "$min",
+        "avg": "$avg", // technically not in jq, but equivalent to (add/length).
+        "first": "$first",
+        "last": "$last",
+    };
+    var m = match;
+    return match(jqAccumExpr, (when) => {
+        when({
+            type: "Call",
+            function: "map",
+            arguments: [ { type: "FieldRef", name: m.var('field') } ]
+        }, ({field}) => {
+            return {$push: "$" + field};
+        })
+        when({
+            type: "Pipe",
+            left: {
+                type: "Call",
+                function: "map",
+                arguments: [ { type: "FieldRef", name: m.var('field') } ]
+            },
+            right: { type: "Call", function: m.var('accum', a => a in accums), arguments: [] },
+        }, ({field, accum}) => {
+            return {[accums[accum]]: "$" + field};
+        })
+        when(m.any, () => {
+            throw Error("Don't know how to compile this accumulator expression: "
+                        + JSON.stringify(jqAccumExpr, null, 2));
         })
     });
 }

@@ -78,6 +78,8 @@ assert.eq(
             foundingYears: {$addToSet:"$foundingYear"},
             nicknames: {$push:"$nickname"}
       }} ])
+// TODO unify {n: length} and $group.  maybe  {x: accumulator} === group_by(1, {x: accumulator})
+
 
 // sorting
 assert.eq(
