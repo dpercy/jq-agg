@@ -10,6 +10,10 @@
         });
         return result;
 	}
+    
+    function mkCall(func, ...args) {
+      return { type: "Call", function: func, arguments: args };
+    }
 }
 
 Program = _ p:Pipeline _ { return p }
@@ -18,13 +22,22 @@ Pipeline = head:Stage tail:(_ "|" _ s:Stage { return s })* {
     return foldPipe(head, tail);
 }
 
-Stage 
-= lhs:Primary _ op:InfixOp _ rhs:Primary {
-  return { type: "Call", function: op, arguments: [lhs, rhs] }
-}
-/ Primary
+Stage = Prec0
 
-InfixOp = ("==" / ">") { return text() }
+Prec0
+= lhs:Prec1 _ op:$("or") _ rhs:Prec1 { return mkCall(op, lhs, rhs) }
+/ Prec1
+
+Prec1
+= lhs:Prec2 _ op:$("and") _ rhs:Prec2 { return mkCall(op, lhs, rhs) }
+/ Prec2
+
+Prec2
+= lhs:Prec3 _ op:$("=="/"!="/">"/"<") _ rhs:Prec3 { return mkCall(op, lhs, rhs) }
+/ Prec3
+
+Prec3 = Primary
+
 
 // Primary :=  foo  or  .bar  or   .blah[1:2][5].blerg
 Primary = head:PrimaryHead tail:PrimaryTail* {
