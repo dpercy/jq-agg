@@ -107,26 +107,79 @@ function translateStage(jqStage) { // agg stage OR array of agg stages
             // resulting in 2 returned array elements.
             return limit.concat(skip);
         })
-        // select(.fieldName == literal) -> {$match: {fieldName: {$eq: v}}}
-        // TODO more generally, have a translatePredicate function
+        // select(predicate) -> {$match: predicate}
         when({
             type: "Call",
             function: "select",
-            arguments: [ {
-                type: "Call",
-                function: "==",
-                arguments: [
-                    { type: "FieldRef", name: m.var('fieldName') },
-                    { type: "Literal", value: m.var('v') }
-                ]
-            } ]
-        }, ({fieldName, v}) => {
-            return {$match: {[fieldName]: {$eq: v}}}
+            arguments: [ m.var('arg') ]
+        }, ({arg}) => {
+            return {$match: translatePredicate(arg)}
         })
         // fallback: when no case matches, raise an error
         when(m.any, () => {
             throw Error("Don't know how to translate jq: "
                         + JSON.stringify(jqStage, null, 2));
+        })
+    });
+}
+
+function translatePredicate(jqPred) { // -> predicate doc, suitable for passing to $match
+    var comparisonOps = {
+        '==': "$eq",
+        '!=': "$ne",
+        '>': "$gt",
+        '<': "$lt",
+        '>=': "$gte",
+        '<=': "$lte",
+    };
+    var opFlip = {
+        '==': "==",
+        '!=': "!=",
+        '>': "<",
+        '<': ">",
+        '>=': "<=",
+        '<=': ">=",
+    };
+    var logicalOps = {
+        'and': '$and',
+        'or': '$or',
+    };
+    var m = match;
+    return match(jqPred, (when) => {
+        // when compiling (literal op fieldRef),
+        // just flip it around and let the other cases handle it
+        when({
+            type: "Call",
+            function: m.var('op', (op) => op in opFlip),
+            arguments: [
+                m.var('lhs', { type: "Literal", value: m.var('v') }),
+                m.var('rhs', { type: "FieldRef", name: m.var('fieldName') })
+            ]
+        }, ({op, lhs, rhs}) => {
+            return translatePredicate({ type: "Call", function: opFlip[op], arguments: [rhs, lhs] })
+        })
+        // comparison ops
+        when({
+            type: "Call",
+            function: m.var('op', (op) => op in comparisonOps),
+            arguments: [
+                { type: "FieldRef", name: m.var('fieldName') },
+                { type: "Literal", value: m.var('v') }
+            ]
+        }, ({fieldName, op, v}) => {
+            return { [fieldName]: {[comparisonOps[op]]: v} }
+        })
+        // logical ops
+        when({
+            type: "Call",
+            function: m.var('op', (op) => op in logicalOps),
+            arguments: [ m.var('lhs'), m.var('rhs') ]
+        }, ({op, lhs, rhs}) => {
+            return { [logicalOps[op]]: [ translatePredicate(lhs), translatePredicate(rhs) ] };
+        })
+        when(m.any, () => {
+            throw Error("Don't know how to compile this predicate: "
+                        + JSON.stringify(jqPred, null, 2));
         })
     });
 }
