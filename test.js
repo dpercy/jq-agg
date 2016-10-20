@@ -67,9 +67,47 @@ assert.eq(
     [ {$match: {$and: [{ x: {$eq: 123}}, {y:{$gte: 456}}]}} ])
 // TODO more match predicates!
 
+// $group
+assert.eq(
+    jqCompile('group_by(.state; {totalPop: map(.pop)|add})'),
+    [ {$group: {_id: "$state", totalPop: {$sum:"$pop"}}} ])
+assert.eq(
+    jqCompile('group_by(.state; { foundingYears: map(.foundingYear)|unique, nicknames: map(.nickname) })'),
+    [ {$group: {
+            _id: "$state",
+            foundingYears: {$addToSet:"$foundingYear"},
+            nicknames: {$push:"$nickname"}
+      }} ])
+
+// sorting
+assert.eq(
+    jqCompile('sort_by(.totalPop)'),
+    [ {$sort: {totalPop: 1}} ])
+// sorting backwards
+// NOTE: This example is BROKEN when .totalPop is not a number:
+// jq gives an error, but MongoDB will just use BSON compare.
+assert.eq(
+    jqCompile('sort_by(-.totalPop)'),
+    [ {$sort: {totalPop: -1}} ])
+// sorting by tuple
+assert.eq(
+    jqCompile('sort_by([.name, -.age])'),
+    [ {$sort: {name: 1, age: -1}} ])
+
+
+
+// complex queries
+assert.eq(
+    // "find the state with the highest population"
+    jqCompile('group_by(.state; {totalPop: map(.pop)|add}) | max_by(.totalPop)'),
+    [ {$group: {_id: "$state", totalPop: {$sum:"$pop"}}},
+      // rely on $sort + $limit coalescence for efficiency:
+      // https://docs.mongodb.com/v3.0/core/aggregation-pipeline-optimization/#sort-limit-coalescence
+      {$sort: {totalPop: -1}},
+      {$limit: 1}
+    ])
 
 // TODO $unwind as .[]
-// TODO sort - might use a different sort order from jq?
 
 // TODO support parameterized queries: db.mycoll.jq('select(.x == $val)', { val: 123 })
 
@@ -88,5 +126,7 @@ https://docs.mongodb.com/v3.0/tutorial/aggregation-zip-code-data-set/#return-sta
 
 
     jq -s 'group_by(.state)'  means   {$group: {_id: "$state", theactualvalue: {$push: "$$CURRENT"}}}
+
+    {$group: {_id: "$state", avgx: {$avg: "$x"}}}
 
 */

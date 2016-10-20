@@ -45,3 +45,17 @@ jq -n '
     [{x:1,y:1},{x:1,y:2},{x:2,y:3}] |group_by(.x; .n; min; .y)
 '
 ```
+
+```
+cat ~/tmp/zips.json | jq -s '
+def group_by(grouper; mapper):
+      group_by(grouper)
+    | map( mapper as $v
+         | (.[0]|grouper) as $id
+         | {_id:$id} + $v
+         )
+;
+
+group_by(.state; {totalPop: map(.pop)|add})
+'
+```
