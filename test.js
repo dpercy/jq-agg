@@ -101,6 +101,7 @@ assert.eq(
 // complex queries
 assert.eq(
     // "find the state with the highest population"
+    // TODO: this is actually wrong!!! $sort + $limit:1  === [max_by(_)] in an array!
     jqCompile('group_by(.state; {totalPop: map(.pop)|add}) | max_by(.totalPop)'),
     [ {$group: {_id: "$state", totalPop: {$sum:"$pop"}}},
       // rely on $sort + $limit coalescence for efficiency:

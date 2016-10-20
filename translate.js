@@ -138,6 +138,22 @@ function translateStage(jqStage) { // agg stage OR array of agg stages
         }, ({orderExpr}) => {
             return {$sort: translateOrderExpression(orderExpr)};
         })
+        // min_by(.f) -> [ {$sort: {f: 1}}, {$limit: 1} ]
+        when({
+            type: "Call",
+            function: "min_by",
+            arguments: [ m.var('orderExpr') ]
+        }, ({orderExpr}) => {
+            return [{$sort: translateOrderExpression(orderExpr)}, {$limit: 1}]
+        })
+        // max_by(.f) -> [ {$sort: flip compile .f }, {$limit: 1} ]
+        when({
+            type: "Call",
+            function: "max_by",
+            arguments: [ m.var('orderExpr') ]
+        }, ({orderExpr}) => {
+            return [{$sort: translateOrderExpression(orderExpr, true)}, {$limit: 1}]
+        })
         // fallback: when no case matches, raise an error
         when(m.any, () => {
             throw Error("Don't know how to translate jq: "
@@ -247,7 +263,7 @@ function translateAccumExpression(jqAccumExpr) { // -> single expression for use
     });
 }
 
-function translateOrderExpression(jqOrder) {
+function translateOrderExpression(jqOrder, flip) {
     // cases:
     // .f -> { f: 1 }
     // -.f -> { f: -1 }
@@ -259,7 +275,7 @@ function translateOrderExpression(jqOrder) {
             type: "FieldRef",
             name: m.var('name')
         }, ({name}) => {
-            return {[name]: 1}
+            return {[name]: flip ? -1 : 1}
         })
         when({
             type: "Call",
@@ -269,13 +285,13 @@ function translateOrderExpression(jqOrder) {
                 name: m.var('name')
             } ]
         }, ({name}) => {
-            return {[name]: -1}
+            return {[name]: flip ? 1 : -1}
         })
         when({
             type: "Array",
             items: m.var('items')
         }, ({items}) => {
-            return Object.merge.apply(null, items.map(translateOrderExpression));
+            return Object.merge.apply(null, items.map(x => translateOrderExpression(x, flip)));
         })
         when(m.any, () => {
             throw Error("Don't know how to compile this sort key: "
