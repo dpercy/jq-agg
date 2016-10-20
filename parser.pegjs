@@ -33,7 +33,7 @@ Prec1
 / Prec2
 
 Prec2
-= lhs:Prec3 _ op:$("=="/"!="/">"/"<") _ rhs:Prec3 { return mkCall(op, lhs, rhs) }
+= lhs:Prec3 _ op:$("=="/"!="/">"/"<"/">="/"<=") _ rhs:Prec3 { return mkCall(op, lhs, rhs) }
 / Prec3
 
 Prec3 = Primary
