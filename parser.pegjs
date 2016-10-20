@@ -49,6 +49,7 @@ Primary = head:PrimaryHead tail:PrimaryTail* {
 PrimaryHead = "(" _ p:Pipeline _ ")" { return p }
           / v:(Number/String) { return {type:"Literal", value: v } }
           / FunctionCall
+          / Array
           / Object
           / "." v:( FieldRef
                   / Subscript
@@ -64,12 +65,19 @@ Args = "(" _ head:Pipeline tail:(_ ";" _ p:Pipeline { return p })* _ ")"
              { return [head].concat(tail) }
      / "" { return [] }
      
+Array = "[" _ a:ArrayItems _ "]" { return { type: "Array", items: a } }
+ArrayItems
+// jq comma has higher precedence than pipe,
+// so each array item is not a pipeline, it's a stage.
+= head:Stage tail:(_ "," _ s:Stage { return s })* { return [head].concat(tail) }
+/ "" { return [] }
+     
 Object = "{" _ o:ObjectFields _ "}" { return { type: "Object", fields: o } }
 ObjectFields
 = head:ObjectField tail:(_ "," _ f:ObjectField {return f})* {
     return [head].concat(tail)
 }
-/ "" { return { type: "Object", fields: [] } }
+/ "" { return [] }
 ObjectField
 = key:(Identifier / String) _ ":" _ value:Pipeline
     { return { key: key, value: value } }
