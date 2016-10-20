@@ -130,6 +130,14 @@ function translateStage(jqStage) { // agg stage OR array of agg stages
             });
             return {$group: doc};
         })
+        // sort_by(.f) -> {$sort: {f: 1}}
+        when({
+            type: "Call",
+            function: "sort_by",
+            arguments: [ m.var('orderExpr') ]
+        }, ({orderExpr}) => {
+            return {$sort: translateOrderExpression(orderExpr)};
+        })
         // fallback: when no case matches, raise an error
         when(m.any, () => {
             throw Error("Don't know how to translate jq: "
@@ -235,6 +243,43 @@ function translateAccumExpression(jqAccumExpr) { // -> single expression for use
         when(m.any, () => {
             throw Error("Don't know how to compile this accumulator expression: "
                         + JSON.stringify(jqAccumExpr, null, 2));
+        })
+    });
+}
+
+function translateOrderExpression(jqOrder) {
+    // cases:
+    // .f -> { f: 1 }
+    // -.f -> { f: -1 }
+    // [.x, .y] -> { x: 1, y: 1 }
+    // [-.x, .y] -> { x: -1, y: 1 }
+    var m = match;
+    return match(jqOrder, (when) => {
+        when({
+            type: "FieldRef",
+            name: m.var('name')
+        }, ({name}) => {
+            return {[name]: 1}
+        })
+        when({
+            type: "Call",
+            function: "-",
+            arguments: [ {
+                type: "FieldRef",
+                name: m.var('name')
+            } ]
+        }, ({name}) => {
+            return {[name]: -1}
+        })
+        when({
+            type: "Array",
+            items: m.var('items')
+        }, ({items}) => {
+            return Object.merge.apply(null, items.map(translateOrderExpression));
+        })
+        when(m.any, () => {
+            throw Error("Don't know how to compile this sort key: "
+                        + JSON.stringify(jqOrder));
         })
     });
 }
