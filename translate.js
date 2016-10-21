@@ -120,11 +120,11 @@ function translateStage(jqStage) { // agg stage OR array of agg stages
             type: "Call",
             function: "group_by",
             arguments: [
-                { type: "FieldRef", name: m.var('grouperField') },
+                m.var('grouperProjection'),
                 { type: "Object", fields: m.var('accumFields') }
             ]
-        }, ({grouperField, accumFields}) => {
-            var doc = { _id: "$" + grouperField };
+        }, ({grouperProjection, accumFields}) => {
+            var doc = { _id: translateProjection(grouperProjection) };
             accumFields.forEach(({ key, value }) => {
                 doc[key] = translateAccumExpression(value);
             });
@@ -219,6 +219,28 @@ function translatePredicate(jqPred) { // -> predicate doc, suitable for passing 
         when(m.any, () => {
             throw Error("Don't know how to compile this predicate: "
                         + JSON.stringify(jqPred, null, 2));
+        })
+    });
+}
+
+function translateProjection(jqProjection) {
+    var m = match;
+    return match(jqProjection, (when) => {
+        when({ type: "FieldRef", name: m.var('name') }, ({name}) => "$" + name)
+        when({ type: "Literal", value: m.var('v') }, ({v}) => ({$literal: v}))
+        when({ type: "Array", items: m.var('items') }, ({items}) => {
+            return items.map(translateProjection)
+        })
+        when({ type: "Object", fields: m.var('fields') }, ({fields}) => {
+            var doc = {};
+            fields.forEach(({key, value}) => {
+                doc[key] = translateProjection(value);
+            });
+            return doc;
+        })
+        when(m.any, () => {
+            throw Error("Don't konw how to compile this projection: "
+                        + JSON.stringify(jqProjection, null, 2));
         })
     });
 }

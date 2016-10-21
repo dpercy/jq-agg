@@ -78,6 +78,13 @@ assert.eq(
             foundingYears: {$addToSet:"$foundingYear"},
             nicknames: {$push:"$nickname"}
       }} ])
+
+assert.eq(
+    jqCompile('group_by({state, city}; {})'),
+    [ {$group: {_id: {state: "$state", city: "$city"}}} ])
+assert.eq(
+    jqCompile('group_by(1; {})'),
+    [ {$group: {_id: {$literal: 1}}} ])
 // TODO unify {n: length} and $group.  maybe  {x: accumulator} === group_by(1, {x: accumulator})
 
 
