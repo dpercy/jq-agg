@@ -22,7 +22,10 @@ assert.eq(
     jqCompile('map({_id: 1, x: .foo})'),
     [{$project: {_id: {$literal: 1}, x: "$foo"}}])
 // TODO deeper project expressions are tricky because MongoDB has weird array behavior.
-    //  - maybe I can generate an ugly agg query to hide this
+assert.eq(
+    jqCompile('map({_id: .x.y})'),
+    [{$project: {_id: "$x.y"}}])
+
 
 // Simple $project with blacklist of fields
 assert.eq(

@@ -218,7 +218,8 @@ function translatePredicate(jqPred) { // -> predicate doc, suitable for passing 
 function translateProjection(jqProjection) {
     var m = match;
     return match(jqProjection, (when) => {
-        when({ type: "FieldRef", name: m.var('name') }, ({name}) => "$" + name)
+        when((o) => o.type in {FieldRef: 1, Pipe: 1}, 
+             () => translateFieldRef(jqProjection))
         when({ type: "Literal", value: m.var('v') }, ({v}) => ({$literal: v}))
         when({ type: "Array", items: m.var('items') }, ({items}) => {
             return items.map(translateProjection)
@@ -233,6 +234,21 @@ function translateProjection(jqProjection) {
         when(m.any, () => {
             throw Error("Don't konw how to compile this projection: "
                         + JSON.stringify(jqProjection, null, 2));
+        })
+    });
+}
+function translateFieldRef(jqFieldRef) {
+    var m = match;
+    return match(jqFieldRef, (when) => {
+        when({ type: "FieldRef", name: m.var('name') }, ({name}) => "$" + name)
+        when({
+            type: "Pipe",
+            left: m.var('left'),
+            right: { type: "FieldRef", name: m.var('rightName') }
+        }, ({left, rightName}) => translateFieldRef(left) + "." + rightName)
+        when(m.any, () => {
+            throw Error("Expected a field path but got: "
+                        + JSON.stringify(jqFieldRef, null, 2));
         })
     });
 }
@@ -255,20 +271,20 @@ function translateAccumExpression(jqAccumExpr) { // -> single expression for use
         when({
             type: "Call",
             function: "map",
-            arguments: [ { type: "FieldRef", name: m.var('field') } ]
-        }, ({field}) => {
-            return {$push: "$" + field};
+            arguments: [ m.var('proj') ]
+        }, ({proj}) => {
+            return {$push: translateProjection(proj)};
         })
         when({
             type: "Pipe",
             left: {
                 type: "Call",
                 function: "map",
-                arguments: [ { type: "FieldRef", name: m.var('field') } ]
+                arguments: [ m.var('proj') ]
             },
             right: { type: "Call", function: m.var('accum', a => a in accums), arguments: [] },
-        }, ({field, accum}) => {
-            return {[accums[accum]]: "$" + field};
+        }, ({proj, accum}) => {
+            return {[accums[accum]]: translateProjection(proj)};
         })
         when(m.any, () => {
             throw Error("Don't know how to compile this accumulator expression: "
