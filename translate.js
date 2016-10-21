@@ -50,26 +50,6 @@ function translateStage(jqStage) { // agg stage OR array of agg stages
     return match(jqStage, (when) => {
         // jq noop -> empty agg pipeline
         when({ type: "Noop" }, () => [])
-        // map({ key: value, ... }) -> {$project: {key: "$value", ...}}
-        when({
-            type: "Call",
-            function: "map",
-            arguments: [ {
-                type: "Object",
-                fields: m.var('fields'),
-            } ]
-        }, ({fields}) => {
-            // further restrictions:
-            // - each field value must be a literal or single field access
-            var stage = {$project: {_id: 0}};
-            fields.forEach((field) => match(field.value, (when) => {
-                when({ type: "Literal", value: m.var('v') }, ({v}) =>
-                    stage.$project[field.key] = {$literal: v})
-                when({ type: "FieldRef", name: m.var('name') }, ({name}) =>
-                    stage.$project[field.key] = "$" + name)
-            }));
-            return stage;
-        })
         // map(del(.fieldName)) -> {$project: {fieldName: 0}}
         when({
             type: "Call",
@@ -84,6 +64,18 @@ function translateStage(jqStage) { // agg stage OR array of agg stages
             } ]
         }, ({fieldName}) => {
            return {$project: {[fieldName]: 0}};
+        })
+        // map({ key: value, ... }) -> {$project: {key: "$value", ...}}
+        when({
+            type: "Call",
+            function: "map",
+            arguments: [ m.var('proj') ]
+        }, ({proj}) => {
+            return {
+                $project: Object.merge(
+                    { _id: 0 },
+                    translateProjection(proj))
+            };
         })
         // { n: length } -> {$group: {_id: null, n:{$sum:1}}}
         when({
