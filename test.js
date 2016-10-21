@@ -60,13 +60,13 @@ assert.eq(
 
 // $match -> select
 assert.eq(
-    jqCompile('select(.x == 123)'),
+    jqCompile('map(select(.x == 123))'),
     [ {$match: { x: {$eq: 123}}} ])
 assert.eq(
-    jqCompile('select(123 < .x)'),
+    jqCompile('map(select(123 < .x))'),
     [ {$match: { x: {$gt: 123}}} ])
 assert.eq(
-    jqCompile('select(.x == 123 and .y >= 456)'),
+    jqCompile('map(select(.x == 123 and .y >= 456))'),
     [ {$match: {$and: [{ x: {$eq: 123}}, {y:{$gte: 456}}]}} ])
 // TODO more match predicates!
 

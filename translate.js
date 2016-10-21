@@ -65,6 +65,20 @@ function translateStage(jqStage) { // agg stage OR array of agg stages
         }, ({fieldName}) => {
            return {$project: {[fieldName]: 0}};
         })
+        // map(select(predicate)) -> {$match: predicate}
+        when({
+            type: "Call",
+            function: "map",
+            arguments: [ {
+                type: "Call",
+                function: "select",
+                arguments: [
+                    m.var('arg')
+                ]
+            } ]
+        }, ({arg}) => {
+            return {$match: translatePredicate(arg)}
+        })
         // map({ key: value, ... }) -> {$project: {key: "$value", ...}}
         when({
             type: "Call",
@@ -98,14 +112,6 @@ function translateStage(jqStage) { // agg stage OR array of agg stages
             // for example: .[3:5] should limit to 5, then skip 3,
             // resulting in 2 returned array elements.
             return limit.concat(skip);
-        })
-        // select(predicate) -> {$match: predicate}
-        when({
-            type: "Call",
-            function: "select",
-            arguments: [ m.var('arg') ]
-        }, ({arg}) => {
-            return {$match: translatePredicate(arg)}
         })
         // group_by(.fieldName; { x: aggregate, ... }) -> {$group: {_id: "$fieldName", x: aggregate ... }}
         when({
