@@ -2,7 +2,7 @@
 
 ## Installation
 
-Clone this repo and run `make install`.
+Clone this repo and run `make`. (You also need `npm`: run `brew install npm` if you don't have it already.)
 
 ## What is it?
 
