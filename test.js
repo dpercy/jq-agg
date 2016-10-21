@@ -1,4 +1,4 @@
-load('main.js');
+load('bundle.gen.js');
 
 // Easiest case: a noop -> empty agg pipeline
 assert.eq(
