@@ -11,7 +11,7 @@ install: bundle.gen.js
 test: bundle.gen.js parser.gen.js
 	mongo --nodb test.js
 
-bundle.gen.js: parser.gen.js translate.js main.js
+bundle.gen.js: stub.js node_modules/pattern-match/lib/match.js parser.gen.js translate.js main.js 
 	cat >$@ $^
 
 parser.gen.js: parser.pegjs ./node_modules/pegjs/bin/pegjs

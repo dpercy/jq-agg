@@ -1,6 +1,7 @@
 (function(root) {
 
 
+    /*
 var match = (function() {
     // eval(cat(file)) is similar to load(file), but it evaluates it in the current scope,
     // instead of the global scope.  This lets us mock things like `global`.
@@ -9,11 +10,12 @@ var match = (function() {
     eval(cat("node_modules/pattern-match/lib/match.js"));
     return module.exports;
 })();
+*/
 
 
 
 // input: a parsed jq expression (pipeline)
-// output: a MongoDB agg pipeline (suitable for passing to 
+// output: a MongoDB agg pipeline
 function translate(jq) {
     return flatten(flattenPipeline(jq).map(translateStage));
 }
