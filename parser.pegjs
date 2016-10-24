@@ -1,4 +1,10 @@
 {
+	/*
+	
+	When modifying this parser, http://pegjs.org/online is very helpful for interactive testing.
+	
+	*/
+	
 	function foldPipe(head, tail) {
     	var result = head;
         tail.forEach(function(suffix) {
